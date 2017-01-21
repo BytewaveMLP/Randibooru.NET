@@ -12,7 +12,7 @@ namespace Randibooru {
 		public string DerpibooruAPIKey { get; set; }
 
 		[Option('v', "verbose", DefaultValue = false,
-			HelpText = "Prints all requests to stdout")]
+			HelpText = "Prints extra info to stdout")]
 		public bool Verbose { get; set; }
 
 		[ParserState]

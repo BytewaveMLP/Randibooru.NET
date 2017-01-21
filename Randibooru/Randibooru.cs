@@ -1,13 +1,18 @@
 ﻿using System;
-using Discord;
-using Discord.Net;
-using Discord.Commands;
 using CommandLine;
+using NLog;
+using DSharpPlus;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Randibooru {
 	class Randibooru {
-		private DiscordClient _client;
 		private Options options;
+		private static readonly Logger nlog = LogManager.GetCurrentClassLogger();
+
+		public static Logger Log {
+			get { return nlog; }
+		}
 
 		static void Main(string[] args) {
 			var options = new Options();
@@ -18,44 +23,68 @@ namespace Randibooru {
 
 		private Randibooru(Options options) {
 			this.options = options;
+
+			if (this.options.Verbose) {
+				foreach (var role in LogManager.Configuration.LoggingRules) {
+					role.EnableLoggingForLevel(NLog.LogLevel.Debug);
+				}
+
+				LogManager.ReconfigExistingLoggers();
+			}
 		}
 
 		public void Start() {
-			_client = new DiscordClient();
-
-			_client.UsingCommands(x => {
-				x.PrefixChar = '+';
-				x.HelpMode = HelpMode.Public;
+			var _client = new DiscordClient(new DiscordConfig() {
+				Token = options.DiscordAPIKey,
+				TokenType = TokenType.Bot,
+				DiscordBranch = Branch.Canary,
+				LogLevel = DSharpPlus.LogLevel.Debug,
+				UseInternalLogHandler = false,
+				AutoReconnect = true,
 			});
 
-			_client.GetService<CommandService>().CreateGroup("derpi", cgb => {
-				cgb.CreateCommand("random")
-					.Alias(new string[] {"rb"})
-					.Description("Pulls a random image from Derpibooru with the given query")
-					.Parameter("Query", ParameterType.Unparsed)
-					.Do(async e => {
-						await e.Channel.SendMessage(e.GetArg("Query"));
-					});
-			});
+			Random rnd = new Random();
 
-			_client.ExecuteAndWait(async () => {
+			_client.MessageCreated += async (sender, e) => {
+				if (!e.Message.Author.IsBot) {
+					if (e.Message.Content.StartsWith("+rb ")) {
+						var author = e.Message.Author;
+						var content = e.Message.Content;
+						var query = content.Substring(4);
 
-				try {
-					await _client.Connect(this.options.DiscordAPIKey, TokenType.Bot);
-				} catch (HttpException e) {
-					await Console.Error.WriteLineAsync("[FATAL]: " + e.Message);
-					await Console.Error.WriteLineAsync("Ensure your Discord API key is correct, and check");
-					await Console.Error.WriteLineAsync("    https://status.discordapp.com");
-					await Console.Error.WriteLineAsync("for any outages.");
-					Environment.Exit(127);
+						Log.Debug("Request received!");
+						Log.Debug("    User:  @{0}#{1}", author.Username, author.Discriminator);
+						Log.Debug("    ID:    {0}", author.ID);
+						Log.Debug("    Query: {0}", query);
+						DiscordEmbed embed = new DiscordEmbed {
+							Title = "Image",
+							Description = "**Query:** " + query,
+							Type = "rich",
+							Color = rnd.Next(0, 9999999),
+							Image = new DiscordEmbedImage() {
+								Url = "https://derpicdn.net/img/view/2016/9/22/1255688__safe_solo_cute_smiling_derpy+hooves_underhoof_glass_derpabetes_against+glass_artist-colon-nimaru.png"
+							}
+						};
+
+						await e.Message.Respond($"{e.Message.Author.Mention}", false, embed);
+					}
 				}
-				await Console.Out.WriteLineAsync("Successfully logged into Discord!");
-				if (this.options.Verbose) {
-					Profile user = _client.CurrentUser;
-					await Console.Out.WriteLineAsync("USER: @" + user.Name + "#" + user.Discriminator);
-					await Console.Out.WriteLineAsync("ID:   " + user.Id);
-				}
-			});
+			};
+
+			_client.Ready += async (sender, e) => {
+				await Task.Run(() => {
+					Log.Info("Connected!");
+					var user = _client.Me;
+					Log.Debug("Logged in as:");
+					Log.Debug("    User: @{0}#{1}", user.Username, user.Discriminator);
+					Log.Debug("    ID:   {0}", user.ID);
+				});
+			};
+
+			Log.Info("Connecting to Discord...");
+			_client.Connect();
+
+			Console.ReadKey(true);
 		}
 	}
 }
