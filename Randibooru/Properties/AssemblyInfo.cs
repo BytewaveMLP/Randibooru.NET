@@ -11,7 +11,7 @@ using CommandLine;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Randibooru")]
-[assembly: AssemblyCopyright("Copyright (C) Bytewave 2017")]
+[assembly: AssemblyCopyright("Copyright (C) Eliot Partridge, 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyLicense(
