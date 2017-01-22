@@ -39,6 +39,10 @@
       <HintPath>..\packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Coolbooru, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Coolbooru\Coolbooru.dll</HintPath>
+    </Reference>
     <Reference Include="DSharpPlus, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DSharpPlus.1.2.1-rc\lib\DSharpPlus.dll</HintPath>
       <Private>True</Private>

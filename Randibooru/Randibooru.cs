@@ -3,12 +3,15 @@ using CommandLine;
 using NLog;
 using DSharpPlus;
 using System.Threading.Tasks;
-using System.Collections.Generic;
+using Coolbooru;
+using static Coolbooru.Coolbooru;
+using Newtonsoft.Json;
 
 namespace Randibooru {
 	class Randibooru {
 		private Options options;
 		private static readonly Logger nlog = LogManager.GetCurrentClassLogger();
+		private CoolSearchQuery sq;
 
 		public static Logger Log {
 			get { return nlog; }
@@ -31,6 +34,14 @@ namespace Randibooru {
 
 				LogManager.ReconfigExistingLoggers();
 			}
+
+			sq = new CoolSearchQuery();
+
+			sq.sf = CoolSearchSort.Random;
+
+			if (this.options.DerpibooruAPIKey != null) {
+				sq.key = this.options.DerpibooruAPIKey;
+			}
 		}
 
 		public void Start() {
@@ -43,30 +54,80 @@ namespace Randibooru {
 				AutoReconnect = true,
 			});
 
-			Random rnd = new Random();
-
 			_client.MessageCreated += async (sender, e) => {
 				if (!e.Message.Author.IsBot) {
-					if (e.Message.Content.StartsWith("+rb ")) {
-						var author = e.Message.Author;
-						var content = e.Message.Content;
+					var message = e.Message;
+					var content = message.Content;
+					var author = message.Author;
+
+					if (content.StartsWith("+rb ")) {
 						var query = content.Substring(4);
 
 						Log.Debug("Request received!");
 						Log.Debug("    User:  @{0}#{1}", author.Username, author.Discriminator);
 						Log.Debug("    ID:    {0}", author.ID);
 						Log.Debug("    Query: {0}", query);
-						DiscordEmbed embed = new DiscordEmbed {
-							Title = "Image",
-							Description = "**Query:** " + query,
-							Type = "rich",
-							Color = rnd.Next(0, 9999999),
-							Image = new DiscordEmbedImage() {
-								Url = "https://derpicdn.net/img/view/2016/9/22/1255688__safe_solo_cute_smiling_derpy+hooves_underhoof_glass_derpabetes_against+glass_artist-colon-nimaru.png"
-							}
-						};
 
-						await e.Message.Respond($"{e.Message.Author.Mention}", false, embed);
+						this.sq.q = query;
+						var s = await search(this.sq);
+						var res = s.search;
+
+						if (res.Count > 0) {
+							var img = res[0];
+							var cEmbed = await embed(Int32.Parse(img.id));
+							DiscordEmbed dEmbed = new DiscordEmbed {
+								Title = "Derpibooru Image",
+								Description = "**Tags:**" + string.Join(", ", cEmbed.derpibooru_tags),
+								Url = cEmbed.provider_url,
+								Author = new DiscordEmbedAuthor {
+									Url = cEmbed.author_url,
+									Name = cEmbed.author_name
+								},
+								Image = new DiscordEmbedImage {
+									Url = "https:" + cEmbed.thumbnail_url,
+								},
+								Provider = new DiscordEmbedProvider {
+									Url = cEmbed.provider_url,
+									Name = cEmbed.provider_name,
+								},
+								Type = "rich",
+							};
+
+							await e.Message.Respond($"{e.Message.Author.Mention}", false, dEmbed);
+						}
+					} else if (content.Equals("+rb")) {
+						Log.Debug("Request received!");
+						Log.Debug("    User:  @{0}#{1}", author.Username, author.Discriminator);
+						Log.Debug("    ID:    {0}", author.ID);
+						Log.Debug("    Query: None specified");
+
+						this.sq.q = "*";
+						var s = await search(this.sq);
+						var res = s.search;
+
+						if (res.Count > 0) {
+							var img = res[0];
+							var cEmbed = await embed(Int32.Parse(img.id));
+							DiscordEmbed dEmbed = new DiscordEmbed {
+								Title = "Derpibooru Image",
+								Description = "**Tags:**" + string.Join(", ", cEmbed.derpibooru_tags),
+								Url = cEmbed.provider_url,
+								Author = new DiscordEmbedAuthor {
+									Url = cEmbed.author_url,
+									Name = cEmbed.author_name
+								},
+								Image = new DiscordEmbedImage {
+									Url = "https:" + cEmbed.thumbnail_url,
+								},
+								Provider = new DiscordEmbedProvider {
+									Url = cEmbed.provider_url,
+									Name = cEmbed.provider_name,
+								},
+								Type = "rich",
+							};
+
+							await e.Message.Respond($"{e.Message.Author.Mention}", false, dEmbed);
+						}
 					}
 				}
 			};
