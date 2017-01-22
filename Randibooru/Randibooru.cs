@@ -61,6 +61,8 @@ namespace Randibooru {
 					var author = message.Author;
 
 					if (content.StartsWith("+rb ")) {
+						await e.Channel.TriggerTyping();
+
 						var query = content.Substring(4);
 
 						Log.Debug("Request received!");
@@ -94,8 +96,12 @@ namespace Randibooru {
 							};
 
 							await e.Message.Respond($"{e.Message.Author.Mention}", false, dEmbed);
+						} else {
+							await e.Message.Respond($"{e.Message.Author.Mention}: **No images found.**");
 						}
 					} else if (content.Equals("+rb")) {
+						await e.Channel.TriggerTyping();
+
 						Log.Debug("Request received!");
 						Log.Debug("    User:  @{0}#{1}", author.Username, author.Discriminator);
 						Log.Debug("    ID:    {0}", author.ID);
@@ -127,6 +133,8 @@ namespace Randibooru {
 							};
 
 							await e.Message.Respond($"{e.Message.Author.Mention}", false, dEmbed);
+						} else {
+							await e.Message.Respond($"{e.Message.Author.Mention}: **No images found.**");
 						}
 					}
 				}
