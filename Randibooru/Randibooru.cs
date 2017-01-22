@@ -9,14 +9,24 @@ using static Coolbooru.Coolbooru;
 namespace Randibooru {
 	class Randibooru {
 		private Options options;
-		private static readonly Logger nlog = LogManager.GetCurrentClassLogger();
 		private CoolSearchQuery sq;
-
+		private static bool isConnected;
+		private static readonly Logger nlog = LogManager.GetCurrentClassLogger();
+		private static DiscordClient _client;
 		public static Logger Log {
 			get { return nlog; }
 		}
 
 		static void Main(string[] args) {
+			Console.CancelKeyPress += delegate {
+				if (isConnected) {
+					Log.Warn("CTRL+C pressed while client was connected! Shutting down gracefully...");
+					_client.Disconnect();
+				}
+
+				Log.Info("Exitting Randibooru.NET... Goodbye!");
+			};
+
 			var options = new Options();
 			if (Parser.Default.ParseArguments(args, options)) {
 				new Randibooru(options).Start();
@@ -36,7 +46,7 @@ namespace Randibooru {
 
 			sq = new CoolSearchQuery();
 
-			sq.sf = CoolSearchSort.Random;
+			sq.sf = SORT_RANDOM;
 
 			if (this.options.DerpibooruAPIKey != null) {
 				sq.key = this.options.DerpibooruAPIKey;
@@ -44,13 +54,13 @@ namespace Randibooru {
 		}
 
 		public void Start() {
-			var _client = new DiscordClient(new DiscordConfig() {
+			_client = new DiscordClient(new DiscordConfig() {
 				Token = options.DiscordAPIKey,
 				TokenType = TokenType.Bot,
 				DiscordBranch = Branch.Canary,
 				LogLevel = DSharpPlus.LogLevel.Debug,
 				UseInternalLogHandler = false,
-				AutoReconnect = true,
+				AutoReconnect = false,
 			});
 
 			_client.MessageCreated += async (sender, e) => {
@@ -84,18 +94,29 @@ namespace Randibooru {
 						} else {
 							await e.Message.Respond($"{e.Message.Author.Mention}: **No images found.**");
 						}
+					} else if (content.Equals("+rbhelp")) {
+						Log.Debug("Help request received!");
+						Log.Debug("    User:  @{0}#{1}", author.Username, author.Discriminator);
+						Log.Debug("    ID:    {0}", author.ID);
+
+						await e.Message.Respond($"{e.Message.Author.Mention}: **Randibooru Help**\n"
+							+ "`+rb [<query>]` - Pulls a random image from Derpibooru, optionally matching the given query.\n"
+							+ "    - `query` - The Derpibooru query to match against. See https://derpibooru.org/search/syntax for query syntax information.");
 					}
 				}
 			};
 
 			_client.Ready += async (sender, e) => {
 				await Task.Run(() => {
+					isConnected = true;
 					Log.Info("Connected!");
 					var user = _client.Me;
 					Log.Debug("Logged in as:");
 					Log.Debug("    User: @{0}#{1}", user.Username, user.Discriminator);
 					Log.Debug("    ID:   {0}", user.ID);
 				});
+
+				await _client.UpdateStatus("+rbhelp for help");
 			};
 
 			Log.Info("Connecting to Discord...");
