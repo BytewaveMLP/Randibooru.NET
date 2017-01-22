@@ -5,7 +5,6 @@ using DSharpPlus;
 using System.Threading.Tasks;
 using Coolbooru;
 using static Coolbooru.Coolbooru;
-using Newtonsoft.Json;
 
 namespace Randibooru {
 	class Randibooru {
