@@ -4,7 +4,6 @@ using CommandLine;
 using NLog;
 using DSharpPlus;
 using Coolbooru;
-using static Coolbooru.Coolbooru;
 
 namespace Randibooru {
 	class Randibooru {
@@ -46,10 +45,10 @@ namespace Randibooru {
 
 			sq = new CoolSearchQuery();
 
-			sq.sf = SORT_RANDOM;
+			sq.SortFormat = CoolStuff.SORT_RANDOM;
 
 			if (this.options.DerpibooruAPIKey != null) {
-				sq.key = this.options.DerpibooruAPIKey;
+				sq.APIKey = this.options.DerpibooruAPIKey;
 			}
 		}
 
@@ -83,8 +82,8 @@ namespace Randibooru {
 						Log.Debug("    ID:    {0}", author.ID);
 						Log.Debug("    Query: {0}", query);
 
-						this.sq.q = query;
-						var s = await search(this.sq);
+						this.sq.Query = query;
+						var s = await CoolStuff.Search(this.sq);
 						var res = s.search;
 
 						if (res.Count > 0) {
@@ -126,7 +125,7 @@ namespace Randibooru {
 		}
 
 		public async Task<DiscordEmbed> ConstructDiscordEmbed(CoolItem img) {
-			var cEmbed = await embed(Int32.Parse(img.id));
+			var cEmbed = await CoolStuff.Embed(Int32.Parse(img.id));
 			DiscordEmbed dEmbed = new DiscordEmbed {
 				Title = "Derpibooru Image",
 				Description = "**Tags:** " + string.Join(", ", cEmbed.derpibooru_tags),
